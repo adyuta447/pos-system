@@ -1,56 +1,46 @@
-# Welcome to your Expo app 👋
+# Kasir F&B (POS)
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikasi kasir Android (tablet/HP) untuk usaha F&B mikro. Spesifikasi lengkap ada di dokumen fitur POS F&B UMKM.
 
-## Get started
-
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **src/app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Jalankan
 
 ```bash
-npm run reset-project
+yarn install
+npx expo start          # buka di Expo Go / emulator Android
+yarn test               # tes format struk, total, ESC/POS
+npx tsc --noEmit && npx expo lint
 ```
 
-This command will move the starter code to the **example** directory and create a blank **src/app** directory where you can start developing.
+Login demo: **Rina** PIN `1234` (kasir), **Pemilik** PIN `123456`. Menu, diskon, dan toko "Kopi Senja" adalah data contoh (`seed()` di `src/lib/db.ts`).
 
-### Other setup steps
+## Struktur
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```
+src/
+  app/          layar (route Expo Router), tipis: hanya merangkai komponen + hook
+  components/
+    ui/         komponen dasar: AppText, Button, Keypad, Sheet, TextField, ...
+    kasir/      layar kasir: menu, keranjang, modifier, pembayaran
+    login/ riwayat/ shift/ settings/   komponen per layar
+  hooks/        useCart, useCatalog, useFocusedStore, useToast
+  db/           SQLite per domain: schema, seed, store, users, shifts, catalog, orders
+  lib/          logika murni tanpa React: money, cart, modifiers, receipt, escpos, keypad; printer.ts = PrinterService
+  providers/    SessionProvider (kasir + shift aktif)
+  constants/    palette.js: satu sumber warna untuk Tailwind dan kode
+```
 
-## Learn more
+Aturan yang dipakai:
 
-To learn more about developing your project with Expo, look at the following resources:
+- Satu komponen per file, `export default function`, props diketik dengan `interface Props`.
+- Bentuk objek selalu `interface` (dijaga ESLint `consistent-type-definitions`). `type` hanya untuk union seperti `OrderType = 'dine_in' | 'take_away'`, karena interface tidak bisa menyatakan union.
+- Layar tidak berisi SQL; query ada di `src/db/`. Komponen tidak memanggil database; datanya lewat props.
+- Logika murni di `src/lib/` tidak meng-import React/Expo, jadi bisa dites dengan Node (`yarn test`). Import antar file di sana memakai ekstensi `.ts` supaya Node bisa menjalankannya.
+- Sheet/modal di-mount hanya saat terbuka, jadi state-nya selalu mulai bersih.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+## Menyambungkan printer Bluetooth
 
-## Join the community
+1. Pilih library setelah diuji dengan printer asli (mis. `react-native-bluetooth-classic`).
+2. Buat driver yang memenuhi tipe `PrinterDriver` lalu panggil `registerPrinterDriver(driver)` sekali saat aplikasi mulai.
+3. Butuh development build (`npx expo run:android` atau `eas build --profile development`) dan izin `BLUETOOTH_CONNECT` / `BLUETOOTH_SCAN`.
 
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Sampai driver dipasang, setiap transaksi tetap tersimpan; struk bisa dilihat, dicetak ulang, atau dikirim lewat WhatsApp.
