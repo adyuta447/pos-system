@@ -1,0 +1,18 @@
+name: pos_data
+description: Database lokal Drift, repository interface dan implementasi lokal.
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.14.0
+dependencies:
+  flutter:
+    sdk: flutter
+  drift: ^2.35.4
+  drift_flutter: ^0.3.1
+  pos_core: any
+  uuid: ^4.6.0
+dev_dependencies:
+  build_runner: ^2.17.1
+  drift_dev: ^2.35.3
+  flutter_test:
+    sdk: flutter

@@ -6,7 +6,7 @@ Monorepo. Spesifikasi produk ada di `PRD — POS UMKM Indonesia v1.md`.
 |-------------|--------------------------------------|--------------------|
 | `backend/`  | REST API untuk web dan tablet        | Go (stdlib `net/http`) |
 | `frontend/` | Web Owner, Admin Cabang, Superadmin  | Next.js + Tailwind |
-| `mobile/`   | Aplikasi kasir tablet (landscape)    | Flutter            |
+| `mobile/`   | Aplikasi kasir tablet (landscape): `apps/kasir` + package `pos_core`, `pos_data`, `pos_printer`, `pos_ui` | Flutter (pub workspace) |
 
 ## Menjalankan
 
@@ -18,7 +18,7 @@ cd backend && go run .
 cd frontend && npm install && npm run dev
 
 # Mobile (tablet via USB atau simulator)
-cd mobile && flutter pub get && flutter run
+cd mobile && flutter pub get && cd apps/kasir && flutter run
 ```
 
 ## Test
@@ -26,5 +26,5 @@ cd mobile && flutter pub get && flutter run
 ```bash
 cd backend && go test ./...
 cd frontend && npm run lint && npm run build
-cd mobile && flutter analyze && flutter test
+cd mobile && flutter analyze && for d in packages/* apps/kasir; do (cd $d && flutter test); done
 ```
