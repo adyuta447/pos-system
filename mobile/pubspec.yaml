@@ -1,0 +1,13 @@
+name: pos_workspace
+description: Workspace POS UMKM (Dart pub workspaces).
+publish_to: none
+environment:
+  sdk: ^3.14.0
+workspace:
+  - apps/kasir
+  - packages/pos_core
+  - packages/pos_ui
+  - packages/pos_data
+  - packages/pos_printer
+dev_dependencies:
+  flutter_lints: ^6.0.0

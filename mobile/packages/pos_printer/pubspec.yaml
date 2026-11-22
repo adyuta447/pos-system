@@ -1,0 +1,15 @@
+name: pos_printer
+description: PrinterService, ReceiptLayout, dan ReceiptBuilder (ESC/POS).
+publish_to: none
+resolution: workspace
+environment:
+  sdk: ^3.14.0
+dependencies:
+  flutter:
+    sdk: flutter
+  esc_pos_utils_plus: ^2.0.4
+  image: ^4.0.17
+  pos_core: any
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
