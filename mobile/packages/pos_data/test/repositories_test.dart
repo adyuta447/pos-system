@@ -10,6 +10,7 @@ void main() {
   late LocalCatalogRepository catalog;
   late LocalTransactionRepository trx;
   late LocalSettingsRepository settings;
+  late LocalExpenseRepository expense;
   late String catId;
 
   Future<ProductView> addProduct(String name, {int price = 10000, int stock = 10}) async {
@@ -28,6 +29,7 @@ void main() {
     catalog = LocalCatalogRepository(db);
     trx = LocalTransactionRepository(db);
     settings = LocalSettingsRepository(db);
+    expense = LocalExpenseRepository(db);
     catId = await catalog.saveCategory(name: 'Kopi');
   });
   tearDown(() => db.close());
@@ -136,5 +138,66 @@ void main() {
     final a = await addProduct('A');
     final sale = await trx.checkout(Cart(items: [item(a, 1)]), PaymentMethod.qrisManual);
     expect(sale.receiptNo, 'KL-000001');
+  });
+
+  test('expense save, edit, date filter and soft delete work as expected', () async {
+    final today = DateTime.now();
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    expect(
+      () => expense.save(
+        category: '  ',
+        amount: 10000,
+        source: ExpensePaymentSource.cash,
+        date: today,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      () => expense.save(
+        category: 'Logistik',
+        amount: 0,
+        source: ExpensePaymentSource.cash,
+        date: today,
+      ),
+      throwsArgumentError,
+    );
+
+    final id = await expense.save(
+      category: 'Bahan baku',
+      amount: 50000,
+      source: ExpensePaymentSource.cash,
+      date: today,
+      note: 'Es batu 2 bal',
+    );
+    await expense.save(
+      category: 'Logistik',
+      amount: 15000,
+      source: ExpensePaymentSource.nonCash,
+      date: yesterday,
+    );
+
+    var todayList = await expense.watchByDate(today).first;
+    expect(todayList, hasLength(1));
+    expect(todayList.single.category, 'Bahan baku');
+    expect(todayList.single.amount, 50000);
+    expect(todayList.single.source, ExpensePaymentSource.cash);
+    expect(todayList.single.note, 'Es batu 2 bal');
+
+    await expense.save(
+      id: id,
+      category: 'Operasional',
+      amount: 55000,
+      source: ExpensePaymentSource.nonCash,
+      date: today,
+    );
+    todayList = await expense.watchByDate(today).first;
+    expect(todayList.single.category, 'Operasional');
+    expect(todayList.single.amount, 55000);
+    expect(todayList.single.note, isNull);
+
+    await expense.delete(id);
+    expect(await expense.watchByDate(today).first, isEmpty);
+    expect((await expense.watchByDate(yesterday).first).single.category, 'Logistik');
   });
 }

@@ -194,3 +194,36 @@ abstract class StoreSettings with _$StoreSettings {
 abstract class ReceiptLine with _$ReceiptLine {
   const factory ReceiptLine(String text, {@Default(false) bool bold}) = _ReceiptLine;
 }
+
+enum ExpensePaymentSource {
+  cash('cash', 'Tunai (Laci)'),
+  nonCash('non_cash', 'Non-tunai');
+
+  const ExpensePaymentSource(this.dbValue, this.label);
+  final String dbValue;
+  final String label;
+
+  static ExpensePaymentSource fromDb(String v) =>
+      values.firstWhere((s) => s.dbValue == v, orElse: () => ExpensePaymentSource.cash);
+}
+
+const expenseCategoryPresets = [
+  'Bahan baku',
+  'Logistik',
+  'Operasional',
+  'Kemasan',
+  'Lainnya',
+];
+
+@freezed
+abstract class ExpenseView with _$ExpenseView {
+  const factory ExpenseView({
+    required String id,
+    required String category,
+    required int amount,
+    required ExpensePaymentSource source,
+    required DateTime createdAt,
+    String? item,
+    String? note,
+  }) = _ExpenseView;
+}

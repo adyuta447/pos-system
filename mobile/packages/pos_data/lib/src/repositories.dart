@@ -64,6 +64,26 @@ abstract interface class TransactionRepository {
   Future<void> voidTransaction(String id, String reason);
 }
 
+abstract interface class ExpenseRepository {
+  Stream<List<ExpenseView>> watchByDate(DateTime day);
+
+  /// Daftar nama item yang pernah diinput pada [category], urut dari yang terbaru.
+  Future<List<String>> recentItemsByCategory(String category, {int limit = 12});
+
+  Future<String> save({
+    String? id,
+    required String category,
+    required int amount,
+    required ExpensePaymentSource source,
+    required DateTime date,
+    String? item,
+    String? note,
+  });
+
+  /// Soft-delete agar tetap siap sinkronisasi di v1.0.
+  Future<void> delete(String id);
+}
+
 // ---------------------------------------------------------------------------
 // Implementasi lokal (Drift / SQLite).
 // ---------------------------------------------------------------------------
@@ -545,4 +565,118 @@ class LocalTransactionRepository implements TransactionRepository {
       await _movement(item.productId, StockMovementType.voided, item.qty, id);
     }
   });
+}
+
+class LocalExpenseRepository implements ExpenseRepository {
+  LocalExpenseRepository(this.db);
+  final PosDatabase db;
+
+  @override
+  Stream<List<ExpenseView>> watchByDate(DateTime day) {
+    final q = db.select(db.expenses)
+      ..where((e) => e.businessDate.equals(_dateKey(day)) & e.deletedAt.isNull())
+      ..orderBy([(e) => OrderingTerm.desc(e.id)]);
+    return q.watch().map(
+          (rows) => [
+            for (final r in rows)
+              ExpenseView(
+                id: r.id,
+                category: r.category,
+                amount: r.amount,
+                source: ExpensePaymentSource.fromDb(r.paymentSource),
+                createdAt: r.createdAt,
+                item: r.item,
+                note: r.note,
+              ),
+          ],
+        );
+  }
+
+  @override
+  Future<List<String>> recentItemsByCategory(String category, {int limit = 12}) async {
+    final rows = await (db.select(db.expenses)
+          ..where(
+            (e) =>
+                e.category.equals(category) & e.deletedAt.isNull() & e.item.isNotNull(),
+          )
+          ..orderBy([(e) => OrderingTerm.desc(e.createdAt), (e) => OrderingTerm.desc(e.id)])
+          ..limit(100))
+        .get();
+    final seen = <String>{};
+    final items = <String>[];
+    for (final r in rows) {
+      final raw = r.item?.trim() ?? '';
+      if (raw.isEmpty) continue;
+      final key = raw.toLowerCase();
+      if (seen.add(key)) {
+        items.add(raw);
+        if (items.length >= limit) break;
+      }
+    }
+    return items;
+  }
+
+  @override
+  Future<String> save({
+    String? id,
+    required String category,
+    required int amount,
+    required ExpensePaymentSource source,
+    required DateTime date,
+    String? item,
+    String? note,
+  }) async {
+    final trimmedCategory = category.trim();
+    if (trimmedCategory.isEmpty) throw ArgumentError('Kategori pengeluaran wajib diisi');
+    if (amount <= 0) throw ArgumentError('Nominal pengeluaran harus lebih dari 0');
+
+    final now = DateTime.now();
+    final trimmedItem = item?.trim();
+    final cleanItem = (trimmedItem == null || trimmedItem.isEmpty) ? null : trimmedItem;
+    final trimmedNote = note?.trim();
+    final cleanNote = (trimmedNote == null || trimmedNote.isEmpty) ? null : trimmedNote;
+    final businessDate = _dateKey(date);
+
+    if (id == null) {
+      final expenseId = newId();
+      await db.into(db.expenses).insert(
+        ExpensesCompanion.insert(
+          id: expenseId,
+          businessDate: businessDate,
+          category: trimmedCategory,
+          amount: amount,
+          paymentSource: Value(source.dbValue),
+          item: Value(cleanItem),
+          note: Value(cleanNote),
+          createdAt: Value(now),
+          updatedAt: Value(now),
+        ),
+      );
+      return expenseId;
+    }
+
+    await (db.update(db.expenses)..where((e) => e.id.equals(id))).write(
+      ExpensesCompanion(
+        businessDate: Value(businessDate),
+        category: Value(trimmedCategory),
+        amount: Value(amount),
+        paymentSource: Value(source.dbValue),
+        item: Value(cleanItem),
+        note: Value(cleanNote),
+        updatedAt: Value(now),
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    final now = DateTime.now();
+    await (db.update(db.expenses)..where((e) => e.id.equals(id))).write(
+      ExpensesCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+      ),
+    );
+  }
 }

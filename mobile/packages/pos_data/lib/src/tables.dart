@@ -106,3 +106,15 @@ class TransactionItems extends Table with SyncColumns {
   IntColumn get qty => integer()();
   IntColumn get lineTotal => integer()();
 }
+
+@TableIndex(name: 'idx_expenses_business_date', columns: {#businessDate})
+@DataClassName('ExpenseRow')
+class Expenses extends Table with SyncColumns {
+  /// Tanggal lokal yyyy-MM-dd, selaras dengan filter laporan harian.
+  TextColumn get businessDate => text()();
+  TextColumn get category => text()();
+  IntColumn get amount => integer()();
+  TextColumn get paymentSource => text().withDefault(const Constant('cash'))();
+  TextColumn get item => text().nullable()();
+  TextColumn get note => text().nullable()();
+}
