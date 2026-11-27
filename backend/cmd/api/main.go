@@ -12,14 +12,21 @@ import (
 
 	"pos-system/backend/internal/app"
 	"pos-system/backend/internal/platform/config"
+	"pos-system/backend/internal/platform/db"
 )
 
 func main() {
 	cfg := config.Load()
 
+	pool, err := db.Connect(context.Background(), cfg.DatabaseURL)
+	if err != nil {
+		log.Fatalf("database connection failed: %v", err)
+	}
+	defer pool.Close()
+
 	srv := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           app.NewRouter(),
+		Handler:           app.NewRouter(cfg, pool),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

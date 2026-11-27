@@ -7,12 +7,14 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+
+	"pos-system/backend/internal/platform/config"
 )
 
 func TestHealth(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
-	NewRouter().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", nil))
+	NewRouter(config.Load(), nil).ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", nil))
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)
 	}

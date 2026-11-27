@@ -1,6 +1,7 @@
 package app
 
 import (
+	"database/sql"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,6 +13,7 @@ import (
 	"pos-system/backend/internal/modules/pos"
 	"pos-system/backend/internal/modules/reporting"
 	"pos-system/backend/internal/modules/umkm"
+	"pos-system/backend/internal/platform/config"
 )
 
 // ModuleRegistrar is implemented by each domain module to register its HTTP routes.
@@ -20,7 +22,7 @@ type ModuleRegistrar interface {
 }
 
 // NewRouter wires all domain modules and Gin middleware into an http.Handler.
-func NewRouter() http.Handler {
+func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 	r := gin.New()
 	r.Use(gin.Logger(), gin.Recovery())
 
@@ -30,8 +32,8 @@ func NewRouter() http.Handler {
 
 	v1 := r.Group("/api/v1")
 	modules := []ModuleRegistrar{
-		auth.NewModule(),
-		umkm.NewModule(),
+		auth.NewModule(auth.NewPGStore(pool), cfg.JWTSecret, cfg.JWTExpiry),
+		umkm.NewModule(umkm.NewPGStore(pool), cfg.JWTSecret),
 		licensing.NewModule(),
 		catalog.NewModule(),
 		pos.NewModule(),

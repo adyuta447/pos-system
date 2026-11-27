@@ -1,16 +1,36 @@
 package auth
 
-import "github.com/gin-gonic/gin"
+import (
+	"time"
 
-// Module encapsulates authentication, roles, JWT, and PIN session logic.
-type Module struct{}
+	"github.com/gin-gonic/gin"
+
+	"pos-system/backend/internal/platform/authctx"
+)
+
+// Module encapsulates authentication, roles, and JWT session logic.
+type Module struct {
+	store     Store
+	jwtSecret string
+	jwtExpiry time.Duration
+}
 
 // NewModule creates a new auth module.
-func NewModule() *Module {
-	return &Module{}
+func NewModule(store Store, jwtSecret string, jwtExpiry time.Duration) *Module {
+	return &Module{
+		store:     store,
+		jwtSecret: jwtSecret,
+		jwtExpiry: jwtExpiry,
+	}
 }
 
 // RegisterRoutes mounts auth endpoints onto the given router group.
 func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
-	// TODO: mount /auth/* routes
+	g := rg.Group("/auth")
+	g.POST("/login", m.handleLogin)
+
+	protected := g.Group("", authctx.RequireAuth(m.jwtSecret))
+	protected.POST("/refresh", m.handleRefresh)
+	protected.POST("/change-password", m.handleChangePassword)
+	protected.GET("/me", m.handleMe)
 }
