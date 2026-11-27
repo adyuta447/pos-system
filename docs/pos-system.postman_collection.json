@@ -1,0 +1,367 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-0001-4000-8000-posumkm00001",
+    "name": "POS UMKM Indonesia API",
+    "description": "Postman Collection untuk API backend POS UMKM Indonesia (Health, Auth, dan UMKM).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8080" },
+    { "key": "access_token", "value": "" },
+    { "key": "umkm_id", "value": "" },
+    { "key": "branch_id", "value": "" },
+    { "key": "staff_id", "value": "" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{access_token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.access_token) {",
+                  "    pm.collectionVariables.set('access_token', data.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"owner@warung.id\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.access_token) {",
+                  "    pm.collectionVariables.set('access_token', data.access_token);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"old_password\": \"secret123\",\n  \"new_password\": \"newpass123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/change-password",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "change-password"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "UMKM (Superadmin)",
+      "item": [
+        {
+          "name": "Create UMKM & Owner",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.umkm && data.umkm.id) {",
+                  "    pm.collectionVariables.set('umkm_id', data.umkm.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Warung Maju Jaya\",\n  \"phone\": \"08123456789\",\n  \"address\": \"Jl. Merdeka No. 10, Jakarta\",\n  \"owner_name\": \"Budi Santoso\",\n  \"owner_email\": \"budi@warungmaju.id\",\n  \"owner_password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/umkms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "umkms"]
+            }
+          }
+        },
+        {
+          "name": "List UMKMs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/umkms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "umkms"]
+            }
+          }
+        },
+        {
+          "name": "Update UMKM Status",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/umkms/{{umkm_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "umkms", "{{umkm_id}}", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branches & Settings (Owner / Branch Admin)",
+      "item": [
+        {
+          "name": "Create Branch",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.branch && data.branch.id) {",
+                  "    pm.collectionVariables.set('branch_id', data.branch.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cabang Sudirman\",\n  \"address\": \"Jl. Sudirman No. 5\",\n  \"phone\": \"08129998887\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches"]
+            }
+          }
+        },
+        {
+          "name": "List Branches",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches"]
+            }
+          }
+        },
+        {
+          "name": "Update Branch",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Cabang Sudirman Baru\",\n  \"address\": \"Jl. Sudirman No. 15\",\n  \"phone\": \"08129998887\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Get Branch Settings",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Update Branch Settings",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"setup_done\": true,\n  \"store_name\": \"Warung Maju - Sudirman\",\n  \"address\": \"Jl. Sudirman No. 15\",\n  \"phone\": \"08129998887\",\n  \"receipt_header\": \"Selamat Datang\",\n  \"receipt_footer\": \"Terima kasih telah berbelanja\",\n  \"logo_url\": \"\",\n  \"qris_image_url\": \"https://example.com/qris.png\",\n  \"receipt_prefix\": \"INV\",\n  \"daily_reset\": true,\n  \"tax_enabled\": true,\n  \"tax_name\": \"PPN\",\n  \"tax_rate_bp\": 1100,\n  \"tax_inclusive\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/settings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "settings"]
+            }
+          }
+        },
+        {
+          "name": "Create Branch Admin Web User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Siti Admin\",\n  \"email\": \"siti@warungmaju.id\",\n  \"password\": \"secret123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/web-users",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "web-users"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Branch Staff (Tablet PIN)",
+      "item": [
+        {
+          "name": "Create Staff",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.staff && data.staff.id) {",
+                  "    pm.collectionVariables.set('staff_id', data.staff.id);",
+                  "  }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Andi Kasir\",\n  \"role\": \"cashier\",\n  \"pin\": \"1234\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/staff",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "staff"]
+            }
+          }
+        },
+        {
+          "name": "List Staff",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/staff",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "staff"]
+            }
+          }
+        },
+        {
+          "name": "Reset Staff PIN",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pin\": \"5678\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/branches/{{branch_id}}/staff/{{staff_id}}/pin",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "branches", "{{branch_id}}", "staff", "{{staff_id}}", "pin"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
