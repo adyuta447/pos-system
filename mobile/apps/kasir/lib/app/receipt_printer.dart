@@ -1,10 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_printer/pos_printer.dart';
 
+import 'logo_bytes_web.dart' if (dart.library.io) 'logo_bytes_io.dart';
 import 'providers.dart';
 
 /// Messenger global supaya snackbar Cetak Ulang tetap tampil walau halaman sudah berganti.
@@ -45,23 +44,24 @@ class ReceiptPrinter {
     try {
       final address = store.printerAddress;
       if (address == null) throw const PrinterException('Printer belum dipilih di Pengaturan');
-      final logoPath = store.logoPath;
-      final logo = logoPath != null && File(logoPath).existsSync()
-          ? await File(logoPath).readAsBytes()
-          : null;
+      final logo = await readLogoBytes(store.logoPath);
       final bytes = await ReceiptBuilder(paper: store.paper).build(lines, logo: logo);
       final service = ref.read(printerServiceProvider);
       await service.connect(PrinterDevice(name: store.printerName ?? address, address: address));
       await service.printBytes(bytes);
       return true;
     } on Exception catch (e) {
+      final hasPrinter = store.printerAddress != null;
       messengerKey.currentState
         ?..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            duration: const Duration(seconds: 8),
+            duration: const Duration(seconds: 6),
+            persist: false,
             content: Text('Struk gagal dicetak: ${e is PrinterException ? e.message : e}'),
-            action: SnackBarAction(label: 'Cetak Ulang', onPressed: () => _send(store, lines)),
+            action: hasPrinter
+                ? SnackBarAction(label: 'Cetak Ulang', onPressed: () => _send(store, lines))
+                : null,
           ),
         );
       return false;
