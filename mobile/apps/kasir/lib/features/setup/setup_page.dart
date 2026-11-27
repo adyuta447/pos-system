@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_ui/pos_ui.dart';
 
+import '../../app/format.dart';
 import '../../app/providers.dart';
 import '../pengaturan/settings_forms.dart';
 
@@ -44,7 +45,7 @@ class _SetupPageState extends ConsumerState<SetupPage> {
             ProductView(
               id: '',
               name: f.product,
-              price: int.parse(f.price),
+              price: parseFormattedInt(f.price) ?? 0,
               categoryId: categoryId,
               stock: int.tryParse(f.stock) ?? 0,
               minStock: 5,
@@ -208,10 +209,10 @@ class _FirstProductFields extends StatelessWidget {
               child: TextFormField(
                 initialValue: v.price,
                 keyboardType: TextInputType.number,
-                inputFormatters: digits,
+                inputFormatters: [ThousandsInputFormatter()],
                 decoration: const InputDecoration(labelText: 'Harga', prefixText: 'Rp '),
                 validator: (s) =>
-                    hasProduct() && (int.tryParse(s ?? '') ?? 0) <= 0 ? 'Harga wajib diisi' : null,
+                    hasProduct() && (parseFormattedInt(s) ?? 0) <= 0 ? 'Harga wajib diisi' : null,
                 onChanged: (s) =>
                     onChanged((category: v.category, product: v.product, price: s, stock: v.stock)),
               ),

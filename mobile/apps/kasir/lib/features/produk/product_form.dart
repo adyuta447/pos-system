@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:pos_core/pos_core.dart';
 import 'package:pos_ui/pos_ui.dart';
 
+import '../../app/format.dart';
 import '../../app/images.dart';
 import '../../app/providers.dart';
 import 'category_dialog.dart';
@@ -23,7 +24,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
   final _form = GlobalKey<FormState>();
   late final _p = widget.product;
   late final _name = TextEditingController(text: _p?.name);
-  late final _price = TextEditingController(text: _p?.price.toString());
+  late final _price = TextEditingController(text: _p != null ? formatThousands(_p.price) : null);
   late final _sku = TextEditingController(text: _p?.sku);
   late final _stock = TextEditingController(text: _p?.stock.toString() ?? '0');
   late final _minStock = TextEditingController(text: _p?.minStock.toString() ?? '5');
@@ -47,7 +48,7 @@ class _ProductFormState extends ConsumerState<ProductForm> {
     final isNew = _p == null;
     final draft = (_p ?? ProductView(id: '', name: '', price: 0, categoryId: '')).copyWith(
       name: _name.text.trim(),
-      price: int.parse(_price.text),
+      price: parseFormattedInt(_price.text) ?? 0,
       categoryId: _categoryId!,
       sku: _sku.text.trim().isEmpty ? null : _sku.text.trim(),
       stock: isNew ? int.parse(_stock.text) : _p.stock,
@@ -129,10 +130,10 @@ class _ProductFormState extends ConsumerState<ProductForm> {
                   child: TextFormField(
                     controller: _price,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [_digits, LengthLimitingTextInputFormatter(9)],
+                    inputFormatters: [ThousandsInputFormatter()],
                     decoration: const InputDecoration(labelText: 'Harga', prefixText: 'Rp '),
                     validator: (v) =>
-                        (int.tryParse(v ?? '') ?? 0) <= 0 ? 'Harga wajib diisi' : null,
+                        (parseFormattedInt(v) ?? 0) <= 0 ? 'Harga wajib diisi' : null,
                   ),
                 ),
                 Expanded(
