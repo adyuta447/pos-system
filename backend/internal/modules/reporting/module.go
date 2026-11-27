@@ -1,6 +1,6 @@
 package reporting
 
-import "net/http"
+import "github.com/gin-gonic/gin"
 
 // Module encapsulates branch financial reports and owner multi-branch dashboards.
 type Module struct{}
@@ -10,7 +10,7 @@ func NewModule() *Module {
 	return &Module{}
 }
 
-// RegisterRoutes mounts reporting endpoints onto the given router.
-func (m *Module) RegisterRoutes(mux *http.ServeMux) {
-	// TODO: mount /api/v1/reports/* routes
+// RegisterRoutes mounts reporting endpoints onto the given router group.
+func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
+	// TODO: mount /reports/* routes
 }

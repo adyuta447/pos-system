@@ -1,6 +1,6 @@
 package umkm
 
-import "net/http"
+import "github.com/gin-gonic/gin"
 
 // Module encapsulates UMKM, branch management, store setup, and tax settings.
 type Module struct{}
@@ -10,7 +10,7 @@ func NewModule() *Module {
 	return &Module{}
 }
 
-// RegisterRoutes mounts umkm and branch endpoints onto the given router.
-func (m *Module) RegisterRoutes(mux *http.ServeMux) {
-	// TODO: mount /api/v1/umkm/* and /api/v1/branches/* routes
+// RegisterRoutes mounts umkm and branch endpoints onto the given router group.
+func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
+	// TODO: mount /umkm/* and /branches/* routes
 }

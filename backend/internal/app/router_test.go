@@ -5,9 +5,12 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 )
 
 func TestHealth(t *testing.T) {
+	gin.SetMode(gin.TestMode)
 	rec := httptest.NewRecorder()
 	NewRouter().ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/health", nil))
 	if rec.Code != http.StatusOK {

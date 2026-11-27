@@ -1,6 +1,6 @@
 package auth
 
-import "net/http"
+import "github.com/gin-gonic/gin"
 
 // Module encapsulates authentication, roles, JWT, and PIN session logic.
 type Module struct{}
@@ -10,7 +10,7 @@ func NewModule() *Module {
 	return &Module{}
 }
 
-// RegisterRoutes mounts auth endpoints onto the given router.
-func (m *Module) RegisterRoutes(mux *http.ServeMux) {
-	// TODO: mount /api/v1/auth/* routes
+// RegisterRoutes mounts auth endpoints onto the given router group.
+func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
+	// TODO: mount /auth/* routes
 }

@@ -1,6 +1,6 @@
 package catalog
 
-import "net/http"
+import "github.com/gin-gonic/gin"
 
 // Module encapsulates product catalog and branch stock management.
 type Module struct{}
@@ -10,7 +10,7 @@ func NewModule() *Module {
 	return &Module{}
 }
 
-// RegisterRoutes mounts catalog and stock endpoints onto the given router.
-func (m *Module) RegisterRoutes(mux *http.ServeMux) {
-	// TODO: mount /api/v1/products/* routes
+// RegisterRoutes mounts catalog and stock endpoints onto the given router group.
+func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
+	// TODO: mount /products/* routes
 }

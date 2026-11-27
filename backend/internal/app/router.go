@@ -3,6 +3,8 @@ package app
 import (
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"pos-system/backend/internal/modules/attendance"
 	"pos-system/backend/internal/modules/auth"
 	"pos-system/backend/internal/modules/catalog"
@@ -10,23 +12,23 @@ import (
 	"pos-system/backend/internal/modules/pos"
 	"pos-system/backend/internal/modules/reporting"
 	"pos-system/backend/internal/modules/umkm"
-	"pos-system/backend/internal/platform/httpx"
-	"pos-system/backend/internal/platform/middleware"
 )
 
 // ModuleRegistrar is implemented by each domain module to register its HTTP routes.
 type ModuleRegistrar interface {
-	RegisterRoutes(mux *http.ServeMux)
+	RegisterRoutes(rg *gin.RouterGroup)
 }
 
-// NewRouter wires all domain modules and shared middleware into an http.Handler.
+// NewRouter wires all domain modules and Gin middleware into an http.Handler.
 func NewRouter() http.Handler {
-	mux := http.NewServeMux()
+	r := gin.New()
+	r.Use(gin.Logger(), gin.Recovery())
 
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		httpx.JSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
 
+	v1 := r.Group("/api/v1")
 	modules := []ModuleRegistrar{
 		auth.NewModule(),
 		umkm.NewModule(),
@@ -38,8 +40,8 @@ func NewRouter() http.Handler {
 	}
 
 	for _, m := range modules {
-		m.RegisterRoutes(mux)
+		m.RegisterRoutes(v1)
 	}
 
-	return middleware.Recover(middleware.Logging(mux))
+	return r
 }
