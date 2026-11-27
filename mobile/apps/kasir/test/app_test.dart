@@ -154,7 +154,7 @@ void main() {
     await t.enterText(find.byType(TextFormField), 'Salah input');
     await _tap(t, find.text('Void transaksi'));
     expect(find.text('Alasan void: Salah input'), findsOneWidget);
-    expect(find.widgetWithText(Column, 'Penjualan'), findsWidgets);
+    expect(find.widgetWithText(Column, 'Pemasukan'), findsWidgets);
     expect(find.text('Rp0'), findsWidgets); // void tidak dihitung
     expect(t.takeException(), isNull);
     await _close(t, db);
@@ -179,7 +179,7 @@ void main() {
     testWidgets('pages fit without overflow at $size', (t) async {
       final db = await t.runAsync(_seeded);
       await _launch(t, db!, size: size);
-      for (final page in ['Produk', 'Pengaturan', 'Riwayat', 'Kasir']) {
+      for (final page in ['Produk', 'Pengaturan', 'Riwayat', 'Pengeluaran', 'Kasir']) {
         await _tap(t, find.text(page).first);
         expect(t.takeException(), isNull, reason: page);
       }

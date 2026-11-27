@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../features/kasir/kasir_page.dart';
 import '../features/kasir/payment_page.dart';
 import '../features/pengaturan/pengaturan_page.dart';
+import '../features/pengeluaran/pengeluaran_page.dart';
 import '../features/produk/produk_page.dart';
 import '../features/riwayat/riwayat_page.dart';
 import '../features/setup/setup_page.dart';
@@ -39,6 +40,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/riwayat', builder: (_, _) => const RiwayatPage())],
+          ),
+          StatefulShellBranch(
+            routes: [GoRoute(path: '/pengeluaran', builder: (_, _) => const PengeluaranPage())],
           ),
           StatefulShellBranch(
             routes: [GoRoute(path: '/produk', builder: (_, _) => const ProdukPage())],

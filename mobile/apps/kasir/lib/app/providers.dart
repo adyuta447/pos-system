@@ -19,6 +19,9 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
 final transactionRepositoryProvider = Provider<TransactionRepository>(
   (ref) => LocalTransactionRepository(ref.watch(databaseProvider)),
 );
+final expenseRepositoryProvider = Provider<ExpenseRepository>(
+  (ref) => LocalExpenseRepository(ref.watch(databaseProvider)),
+);
 
 final printerServiceProvider = Provider<PrinterService>((ref) => const UnavailablePrinterService());
 
@@ -37,6 +40,10 @@ final categoriesProvider = StreamProvider<List<CategoryView>>(
 
 final transactionsByDateProvider = StreamProvider.family<List<TransactionView>, DateTime>(
   (ref, day) => ref.watch(transactionRepositoryProvider).watchByDate(day),
+);
+
+final expensesByDateProvider = StreamProvider.family<List<ExpenseView>, DateTime>(
+  (ref, day) => ref.watch(expenseRepositoryProvider).watchByDate(day),
 );
 
 final movementsProvider = StreamProvider.family<List<StockMovementView>, String>(

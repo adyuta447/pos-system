@@ -39,10 +39,12 @@ class _RiwayatPageState extends ConsumerState<RiwayatPage> {
   Widget build(BuildContext context) {
     final today = dateOnly(DateTime.now());
     final list = ref.watch(transactionsByDateProvider(_day));
+    final expenseList = ref.watch(expensesByDateProvider(_day));
     final trxs = list.value ?? const <TransactionView>[];
+    final expenses = expenseList.value ?? const <ExpenseView>[];
     final selected = trxs.where((t) => t.id == _selectedId).firstOrNull ?? trxs.firstOrNull;
     final header = PageHeader(
-      title: 'Riwayat transaksi',
+      title: 'Riwayat & laporan',
       subtitle: '${_day == today ? 'Hari ini · ' : ''}${formatDate(_day)}',
       trailing: [
         PosButton.secondary(
@@ -53,19 +55,35 @@ class _RiwayatPageState extends ConsumerState<RiwayatPage> {
         ),
       ],
     );
+    if (trxs.isEmpty && expenses.isEmpty) {
+      return Column(
+        children: [
+          header,
+          const Divider(),
+          Expanded(
+            child: (list.isLoading || expenseList.isLoading)
+                ? const Center(child: CircularProgressIndicator())
+                : const EmptyState(
+                    illustration: PosIllustration.historyEmpty,
+                    title: 'Belum ada transaksi',
+                    message: 'Transaksi dan pengeluaran pada tanggal ini akan muncul di sini.',
+                  ),
+          ),
+        ],
+      );
+    }
     if (trxs.isEmpty) {
       return Column(
         children: [
           header,
           const Divider(),
           Expanded(
-            child: list.isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : const EmptyState(
-                    illustration: PosIllustration.historyEmpty,
-                    title: 'Belum ada transaksi',
-                    message: 'Transaksi yang sudah dibayar pada tanggal ini akan muncul di sini.',
-                  ),
+            child: _TransactionList(
+              transactions: trxs,
+              expenses: expenses,
+              selectedId: null,
+              onSelect: (_) {},
+            ),
           ),
         ],
       );
@@ -74,6 +92,7 @@ class _RiwayatPageState extends ConsumerState<RiwayatPage> {
       header: header,
       list: _TransactionList(
         transactions: trxs,
+        expenses: expenses,
         selectedId: selected?.id,
         onSelect: (id) => setState(() => _selectedId = id),
       ),
@@ -85,10 +104,12 @@ class _RiwayatPageState extends ConsumerState<RiwayatPage> {
 class _TransactionList extends StatelessWidget {
   const _TransactionList({
     required this.transactions,
+    required this.expenses,
     required this.selectedId,
     required this.onSelect,
   });
   final List<TransactionView> transactions;
+  final List<ExpenseView> expenses;
   final String? selectedId;
   final ValueChanged<String> onSelect;
 
@@ -96,7 +117,17 @@ class _TransactionList extends StatelessWidget {
   Widget build(BuildContext context) {
     // PRD: transaksi void tidak dihitung di total.
     final valid = transactions.where((t) => !t.isVoid);
-    int sum(Iterable<TransactionView> ts) => ts.fold(0, (s, t) => s + t.total);
+    int sumTrx(Iterable<TransactionView> ts) => ts.fold(0, (s, t) => s + t.total);
+    int sumExp(Iterable<ExpenseView> es) => es.fold(0, (s, e) => s + e.amount);
+
+    final pemasukan = sumTrx(valid);
+    final pengeluaran = sumExp(expenses);
+    final selisihBersih = pemasukan - pengeluaran;
+    final tunaiMasuk = sumTrx(valid.where((t) => t.method == PaymentMethod.cash));
+    final tunaiKeluar = sumExp(expenses.where((e) => e.source == ExpensePaymentSource.cash));
+    final sisaTunaiLaci = tunaiMasuk - tunaiKeluar;
+    final qrisMasuk = sumTrx(valid.where((t) => t.method == PaymentMethod.qrisManual));
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
       child: Column(
@@ -105,30 +136,31 @@ class _TransactionList extends StatelessWidget {
             spacing: 12,
             children: [
               Expanded(
-                child: StatCard(label: 'Penjualan', value: formatRupiah(sum(valid))),
+                child: StatCard(label: 'Pemasukan', value: formatRupiah(pemasukan)),
               ),
               Expanded(
-                child: StatCard(label: 'Transaksi', value: '${valid.length}'),
+                child: StatCard(label: 'Pengeluaran', value: formatRupiah(pengeluaran)),
               ),
               Expanded(
-                child: StatCard(
-                  label: 'Tunai',
-                  value: formatRupiah(sum(valid.where((t) => t.method == PaymentMethod.cash))),
-                ),
+                child: StatCard(label: 'Selisih bersih', value: formatRupiah(selisihBersih)),
               ),
               Expanded(
-                child: StatCard(
-                  label: 'QRIS',
-                  value: formatRupiah(
-                    sum(valid.where((t) => t.method == PaymentMethod.qrisManual)),
-                  ),
-                ),
+                child: StatCard(label: 'Tunai laci', value: formatRupiah(sisaTunaiLaci)),
+              ),
+              Expanded(
+                child: StatCard(label: 'QRIS', value: formatRupiah(qrisMasuk)),
               ),
             ],
           ),
           const SizedBox(height: 20),
           Expanded(
-            child: DataTableCard(
+            child: transactions.isEmpty
+                ? const EmptyState(
+                    illustration: PosIllustration.historyEmpty,
+                    title: 'Belum ada penjualan',
+                    message: 'Ringkasan pengeluaran tanggal ini sudah terhitung di atas.',
+                  )
+                : DataTableCard(
               columns: const [
                 PosColumn('No. struk', width: 150),
                 PosColumn('Waktu', width: 56),

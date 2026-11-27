@@ -36,6 +36,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               items: const [
                 PosNavItem(LucideIcons.shoppingCart, 'Kasir'),
                 PosNavItem(LucideIcons.history, 'Riwayat'),
+                PosNavItem(LucideIcons.wallet, 'Pengeluaran'),
                 PosNavItem(LucideIcons.package, 'Produk'),
               ],
               bottomItems: const [PosNavItem(LucideIcons.settings, 'Pengaturan')],
