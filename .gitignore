@@ -8,3 +8,4 @@
 *.p12
 *.key
 *.mobileprovision
+graphify-out/
