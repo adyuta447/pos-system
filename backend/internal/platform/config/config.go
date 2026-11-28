@@ -26,7 +26,7 @@ func Load() Config {
 	return Config{
 		Port:        getEnv("PORT", "8080"),
 		AppEnv:      getEnv("APP_ENV", "development"),
-		DatabaseURL: getEnv("DATABASE_URL", "postgres://pos:pos_secret@localhost:5432/pos_umkm?sslmode=disable"),
+		DatabaseURL: getEnv("DATABASE_URL", "postgres://pos:pos_secret@localhost:5433/pos_umkm?sslmode=disable"),
 		JWTSecret:   getEnv("JWT_SECRET", "dev-secret-change-in-production"),
 		JWTExpiry:   time.Duration(mins) * time.Minute,
 	}
