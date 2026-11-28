@@ -172,6 +172,25 @@ func (m *memStore) ListStaff(ctx context.Context, umkmID, branchID string) ([]St
 	return out, nil
 }
 
+func (m *memStore) UpdateStaff(_ context.Context, umkmID, branchID, staffID, name, role string, isActive *bool) (Staff, error) {
+	b, ok := m.branches[branchID]
+	st, found := m.staff[staffID]
+	if !ok || b.UMKMID != umkmID || !found || st.BranchID != branchID {
+		return Staff{}, ErrNotFound
+	}
+	if name != "" {
+		st.Name = name
+	}
+	if role != "" {
+		st.Role = role
+	}
+	if isActive != nil {
+		st.IsActive = *isActive
+	}
+	m.staff[staffID] = st
+	return st, nil
+}
+
 func (m *memStore) UpdateStaffPIN(_ context.Context, umkmID, branchID, staffID, pinHash string) error {
 	b, ok := m.branches[branchID]
 	if !ok || b.UMKMID != umkmID {
@@ -303,5 +322,46 @@ func TestOwnerBranchSettingsAndStaff(t *testing.T) {
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409 on duplicate PIN, got %d", rec.Code)
+	}
+
+	// Owner deactivates staff -> 200, invalid role -> 400, foreign branch -> 404
+	for _, tc := range []struct {
+		path, body string
+		want       int
+	}{
+		{"/api/v1/branches/branch-1/staff/staff-3", `{"is_active":false}`, http.StatusOK},
+		{"/api/v1/branches/branch-1/staff/staff-3", `{"role":"owner"}`, http.StatusBadRequest},
+		{"/api/v1/branches/branch-2/staff/staff-3", `{"is_active":false}`, http.StatusNotFound},
+	} {
+		rec = httptest.NewRecorder()
+		req = httptest.NewRequest(http.MethodPatch, tc.path, bytes.NewBufferString(tc.body))
+		req.Header.Set("Authorization", "Bearer "+owner1)
+		r.ServeHTTP(rec, req)
+		if rec.Code != tc.want {
+			t.Fatalf("PATCH %s %s: expected %d, got %d", tc.path, tc.body, tc.want, rec.Code)
+		}
+	}
+	if store.staff["staff-3"].IsActive {
+		t.Fatal("expected staff-3 to be deactivated")
+	}
+}
+
+func TestSuperadminListUMKMBranches(t *testing.T) {
+	r, store, secret := setupUMKMTest(t)
+	store.umkms["umkm-1"] = UMKM{ID: "umkm-1", Name: "Warung", IsActive: true}
+	_, _ = store.CreateBranch(context.Background(), "umkm-1", "Cabang 1", "", "")
+	adminTok := tok(t, secret, authctx.Claims{UserID: "sa-1", Role: "superadmin"})
+
+	for path, want := range map[string]int{
+		"/api/v1/admin/umkms/umkm-1/branches":  http.StatusOK,
+		"/api/v1/admin/umkms/missing/branches": http.StatusNotFound,
+	} {
+		rec := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodGet, path, nil)
+		req.Header.Set("Authorization", "Bearer "+adminTok)
+		r.ServeHTTP(rec, req)
+		if rec.Code != want {
+			t.Fatalf("GET %s: expected %d, got %d", path, want, rec.Code)
+		}
 	}
 }

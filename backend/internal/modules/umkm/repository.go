@@ -102,6 +102,7 @@ type Store interface {
 	CreateBranchWebUser(ctx context.Context, in CreateBranchWebUserInput) (string, error)
 	CreateStaff(ctx context.Context, in CreateStaffInput) (Staff, error)
 	ListStaff(ctx context.Context, umkmID, branchID string) ([]Staff, error)
+	UpdateStaff(ctx context.Context, umkmID, branchID, staffID, name, role string, isActive *bool) (Staff, error)
 	UpdateStaffPIN(ctx context.Context, umkmID, branchID, staffID, pinHash string) error
 }
 
@@ -427,6 +428,22 @@ func (s *pgStore) ListStaff(ctx context.Context, umkmID, branchID string) ([]Sta
 		out = append(out, st)
 	}
 	return out, rows.Err()
+}
+
+func (s *pgStore) UpdateStaff(ctx context.Context, umkmID, branchID, staffID, name, role string, isActive *bool) (Staff, error) {
+	var st Staff
+	err := s.db.QueryRowContext(ctx, `
+		UPDATE branch_staff
+		SET name = COALESCE(NULLIF($1, ''), name), role = COALESCE(NULLIF($2, ''), role),
+		    is_active = COALESCE($3, is_active), updated_at = now()
+		WHERE id = $4 AND branch_id = $5 AND umkm_id = $6 AND deleted_at IS NULL
+		RETURNING id, branch_id, name, COALESCE(photo_url, ''), role, is_active`,
+		name, role, isActive, staffID, branchID, umkmID,
+	).Scan(&st.ID, &st.BranchID, &st.Name, &st.PhotoURL, &st.Role, &st.IsActive)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Staff{}, ErrNotFound
+	}
+	return st, err
 }
 
 func (s *pgStore) UpdateStaffPIN(ctx context.Context, umkmID, branchID, staffID, pinHash string) error {

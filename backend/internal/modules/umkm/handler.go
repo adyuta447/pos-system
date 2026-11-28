@@ -85,6 +85,20 @@ func (m *Module) handleGetUMKMByID(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"umkm": u})
 }
 
+func (m *Module) handleAdminListBranches(c *gin.Context) {
+	umkmID := c.Param("id")
+	if _, err := m.store.GetUMKM(c.Request.Context(), umkmID); err != nil {
+		writeStoreErr(c, err)
+		return
+	}
+	list, err := m.store.ListBranches(c.Request.Context(), umkmID)
+	if err != nil {
+		writeStoreErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"branches": list})
+}
+
 func (m *Module) handleGetMyUMKM(c *gin.Context) {
 	claims, _ := authctx.GetClaims(c)
 	u, err := m.store.GetUMKM(c.Request.Context(), claims.UMKMID)
@@ -273,6 +287,25 @@ func (m *Module) handleListStaff(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"staff": list})
+}
+
+func (m *Module) handleUpdateStaff(c *gin.Context) {
+	claims, _ := authctx.GetClaims(c)
+	var req struct {
+		Name     string `json:"name"`
+		Role     string `json:"role" binding:"omitempty,oneof=branch_admin cashier"`
+		IsActive *bool  `json:"is_active"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	st, err := m.store.UpdateStaff(c.Request.Context(), claims.UMKMID, c.Param("id"), c.Param("staffId"), strings.TrimSpace(req.Name), req.Role, req.IsActive)
+	if err != nil {
+		writeStoreErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"staff": st})
 }
 
 func (m *Module) handleResetStaffPIN(c *gin.Context) {

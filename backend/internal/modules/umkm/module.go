@@ -26,6 +26,7 @@ func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 	admin.POST("", m.handleCreateUMKM)
 	admin.GET("", m.handleListUMKMs)
 	admin.GET("/:id", m.handleGetUMKMByID)
+	admin.GET("/:id/branches", m.handleAdminListBranches)
 	admin.PATCH("/:id/status", m.handleSetUMKMStatus)
 
 	// Owner & Branch Admin UMKM profile
@@ -40,6 +41,7 @@ func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 	ownerOnly.POST("/:id/web-users", m.handleCreateBranchWebUser)
 	ownerOnly.POST("/:id/staff", m.handleCreateStaff)
 	ownerOnly.GET("/:id/staff", m.handleListStaff)
+	ownerOnly.PATCH("/:id/staff/:staffId", m.handleUpdateStaff)
 	ownerOnly.PATCH("/:id/staff/:staffId/pin", m.handleResetStaffPIN)
 
 	settings := branches.Group("", authctx.RequireRole("owner", "branch_admin"))
