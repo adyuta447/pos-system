@@ -175,6 +175,17 @@
           }
         },
         {
+          "name": "Get UMKM Detail (Superadmin)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/admin/umkms/{{umkm_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "admin", "umkms", "{{umkm_id}}"]
+            }
+          }
+        },
+        {
           "name": "Update UMKM Status",
           "request": {
             "method": "PATCH",
@@ -195,6 +206,17 @@
     {
       "name": "Branches & Settings (Owner / Branch Admin)",
       "item": [
+        {
+          "name": "Get My UMKM",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/v1/umkm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "umkm"]
+            }
+          }
+        },
         {
           "name": "Create Branch",
           "event": [
