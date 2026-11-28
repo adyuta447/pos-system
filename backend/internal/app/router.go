@@ -34,7 +34,7 @@ func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 	modules := []ModuleRegistrar{
 		auth.NewModule(auth.NewPGStore(pool), cfg.JWTSecret, cfg.JWTExpiry),
 		umkm.NewModule(umkm.NewPGStore(pool), cfg.JWTSecret),
-		licensing.NewModule(),
+		licensing.NewModule(licensing.NewPGStore(pool), cfg.JWTSecret),
 		catalog.NewModule(),
 		pos.NewModule(),
 		attendance.NewModule(),
