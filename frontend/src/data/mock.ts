@@ -34,7 +34,8 @@ export type PosTxn = {
 
 export type ExpenseSource = "Tunai (Laci)" | "Non-tunai";
 
-export type ExpenseItem = {
+/** Catatan kas manual: dipakai untuk pengeluaran dan pemasukan di luar kasir. */
+export type CashEntry = {
   id: string;
   branchId: string;
   branchName: string;
@@ -44,6 +45,9 @@ export type ExpenseItem = {
   amount: number;
   date: string;
 };
+
+export type ExpenseItem = CashEntry;
+export type IncomeItem = CashEntry;
 
 export type ProductItem = {
   id: string;
@@ -407,6 +411,49 @@ export const INITIAL_EXPENSES: ExpenseItem[] = [
     source: "Non-tunai",
     amount: 200000,
     date: "26 Nov 2026",
+  },
+];
+
+export const INITIAL_INCOMES: IncomeItem[] = [
+  {
+    id: "inc-1",
+    branchId: "cab-kemang",
+    branchName: "Cabang Kemang",
+    category: "Pesanan katering",
+    note: "Kopi susu 30 cup untuk rapat kantor",
+    source: "Non-tunai",
+    amount: 540000,
+    date: "27 Nov 2026",
+  },
+  {
+    id: "inc-2",
+    branchId: "cab-tebet",
+    branchName: "Cabang Tebet",
+    category: "Konsinyasi",
+    note: "Setoran titipan kue dari mitra",
+    source: "Tunai (Laci)",
+    amount: 120000,
+    date: "27 Nov 2026",
+  },
+  {
+    id: "inc-3",
+    branchId: "cab-kemang",
+    branchName: "Cabang Kemang",
+    category: "Penjualan offline",
+    note: "Bazar akhir pekan, dicatat manual",
+    source: "Tunai (Laci)",
+    amount: 385000,
+    date: "26 Nov 2026",
+  },
+  {
+    id: "inc-4",
+    branchId: "cab-tebet",
+    branchName: "Cabang Tebet",
+    category: "Modal tambahan",
+    note: "Tambahan modal kas kecil dari owner",
+    source: "Non-tunai",
+    amount: 500000,
+    date: "24 Nov 2026",
   },
 ];
 

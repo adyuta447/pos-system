@@ -3,6 +3,7 @@ import {
   Banknote,
   Building2,
   ChartColumn,
+  HandCoins,
   LayoutDashboard,
   Package,
   Settings,
@@ -16,6 +17,7 @@ export type UserRole = "superadmin" | "owner" | "branch_admin";
 export type PageId =
   | "overview"
   | "transactions"
+  | "incomes"
   | "expenses"
   | "reports"
   | "products"
@@ -50,6 +52,12 @@ export const NAV: NavGroup[] = [
         id: "transactions",
         label: "Transaksi",
         icon: Banknote,
+        roles: ["superadmin", "owner", "branch_admin"],
+      },
+      {
+        id: "incomes",
+        label: "Pemasukan",
+        icon: HandCoins,
         roles: ["superadmin", "owner", "branch_admin"],
       },
       {
@@ -106,6 +114,7 @@ export const NAV: NavGroup[] = [
 export const PAGE_TITLES: Record<PageId, string> = {
   overview: "Ringkasan Penjualan",
   transactions: "Riwayat Transaksi",
+  incomes: "Pemasukan di Luar Kasir",
   expenses: "Pengeluaran Variabel",
   reports: "Laporan Pemasukan dan Pengeluaran",
   products: "Produk dan Stok",
