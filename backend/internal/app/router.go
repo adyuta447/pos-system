@@ -38,7 +38,7 @@ func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 		catalog.NewModule(),
 		pos.NewModule(),
 		attendance.NewModule(),
-		reporting.NewModule(),
+		reporting.NewModule(reporting.NewPGStore(pool), cfg.JWTSecret),
 	}
 
 	for _, m := range modules {
