@@ -3,8 +3,10 @@ package app
 import (
 	"database/sql"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 
 	"pos-system/backend/internal/modules/attendance"
 	"pos-system/backend/internal/modules/auth"
@@ -24,7 +26,7 @@ type ModuleRegistrar interface {
 // NewRouter wires all domain modules and Gin middleware into an http.Handler.
 func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 	r := gin.New()
-	r.Use(gin.Logger(), gin.Recovery())
+	r.Use(gin.Logger(), gin.Recovery(), requireUUIDs)
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
@@ -46,4 +48,27 @@ func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 	}
 
 	return r
+}
+
+// requireUUIDs answers 404 for any ID that is not a UUID (path :id/:staffId, query *_id),
+// since no such resource can exist and Postgres would otherwise fail the query with a 500.
+func requireUUIDs(c *gin.Context) {
+	isID := func(key string) bool {
+		return key == "id" || strings.HasSuffix(key, "Id") || strings.HasSuffix(key, "_id")
+	}
+	for _, p := range c.Params {
+		if isID(p.Key) && uuid.Validate(p.Value) != nil {
+			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+			return
+		}
+	}
+	for key, vals := range c.Request.URL.Query() {
+		for _, v := range vals {
+			if isID(key) && v != "" && uuid.Validate(v) != nil {
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+				return
+			}
+		}
+	}
+	c.Next()
 }
