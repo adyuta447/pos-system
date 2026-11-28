@@ -91,16 +91,19 @@ func TestLoginAndMe(t *testing.T) {
 	}
 
 	var resp struct {
-		AccessToken string `json:"access_token"`
+		Data struct {
+			AccessToken string `json:"access_token"`
+		} `json:"data"`
+		Status int `json:"status"`
 	}
-	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil || resp.AccessToken == "" {
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil || resp.Data.AccessToken == "" {
 		t.Fatalf("missing access_token: %v", err)
 	}
 
 	// GET /me -> 200
 	rec = httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/auth/me", nil)
-	req.Header.Set("Authorization", "Bearer "+resp.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+resp.Data.AccessToken)
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on /me, got %d", rec.Code)
@@ -110,7 +113,7 @@ func TestLoginAndMe(t *testing.T) {
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest(http.MethodPost, "/api/v1/auth/change-password",
 		bytes.NewBufferString(`{"old_password":"secret123","new_password":"newpass123"}`))
-	req.Header.Set("Authorization", "Bearer "+resp.AccessToken)
+	req.Header.Set("Authorization", "Bearer "+resp.Data.AccessToken)
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on /change-password, got %d: %s", rec.Code, rec.Body.String())

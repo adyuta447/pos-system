@@ -11,12 +11,16 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pos_secret}
       POSTGRES_DB: ${POSTGRES_DB:-pos_umkm}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/migrations:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pos} -d ${POSTGRES_DB:-pos_umkm}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-pos} -d ${POSTGRES_DB:-pos_umkm}",
+        ]
       interval: 5s
       timeout: 5s
       retries: 5

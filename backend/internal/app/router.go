@@ -15,6 +15,7 @@ import (
 	"pos-system/backend/internal/modules/pos"
 	"pos-system/backend/internal/modules/reporting"
 	"pos-system/backend/internal/modules/umkm"
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/config"
 )
 
@@ -29,7 +30,7 @@ func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 	r.Use(gin.Logger(), gin.Recovery(), requireUUIDs)
 
 	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		apiresp.OK(c, "Service healthy", gin.H{"status": "ok"})
 	})
 
 	v1 := r.Group("/api/v1")

@@ -330,7 +330,7 @@ func TestOwnerBranchSettingsAndStaff(t *testing.T) {
 		want       int
 	}{
 		{"/api/v1/branches/branch-1/staff/staff-3", `{"is_active":false}`, http.StatusOK},
-		{"/api/v1/branches/branch-1/staff/staff-3", `{"role":"owner"}`, http.StatusBadRequest},
+		{"/api/v1/branches/branch-1/staff/staff-3", `{"role":"owner"}`, http.StatusUnprocessableEntity},
 		{"/api/v1/branches/branch-2/staff/staff-3", `{"is_active":false}`, http.StatusNotFound},
 	} {
 		rec = httptest.NewRecorder()

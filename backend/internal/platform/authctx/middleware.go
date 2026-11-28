@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+
+	"pos-system/backend/internal/platform/apiresp"
 )
 
 const claimsKey = "auth_claims"
@@ -15,12 +17,14 @@ func RequireAuth(secret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		h := c.GetHeader("Authorization")
 		if !strings.HasPrefix(h, "Bearer ") {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "missing bearer token"})
+			apiresp.Err(c, http.StatusUnauthorized, "Unauthenticated")
+			c.Abort()
 			return
 		}
 		claims, err := ParseToken(secret, strings.TrimPrefix(h, "Bearer "))
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "invalid or expired token"})
+			apiresp.Err(c, http.StatusUnauthorized, "Unauthenticated")
+			c.Abort()
 			return
 		}
 		c.Set(claimsKey, claims)
@@ -33,7 +37,8 @@ func RequireRole(roles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		claims, ok := GetClaims(c)
 		if !ok || !slices.Contains(roles, claims.Role) {
-			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+			apiresp.Err(c, http.StatusForbidden, "You do not have permission to perform this action")
+			c.Abort()
 			return
 		}
 		c.Next()

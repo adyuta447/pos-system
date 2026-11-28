@@ -4,13 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/base32"
 	"errors"
-	"io"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/authctx"
 )
 
@@ -30,21 +30,12 @@ func generateLicenseKey() (string, error) {
 func writeStoreErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+		apiresp.Err(c, http.StatusNotFound, "Resource not found")
 	case errors.Is(err, ErrInvalidState):
-		c.JSON(http.StatusConflict, gin.H{"error": "resource is not in a valid state for this action"})
+		apiresp.Err(c, http.StatusConflict, "Resource is not in a valid state for this action")
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 	}
-}
-
-// bindOptionalJSON accepts an empty body for endpoints whose fields are all optional.
-func bindOptionalJSON(c *gin.Context, v any) bool {
-	if err := c.ShouldBindJSON(v); err != nil && !errors.Is(err, io.EOF) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return false
-	}
-	return true
 }
 
 // --- Superadmin Handlers ---
@@ -52,7 +43,7 @@ func bindOptionalJSON(c *gin.Context, v any) bool {
 func (m *Module) handleAdminListSubscriptions(c *gin.Context) {
 	status := c.Query("status")
 	if status != "" && status != "pending" && status != "confirmed" && status != "rejected" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be pending, confirmed, or rejected"})
+		apiresp.Err(c, http.StatusBadRequest, "status must be pending, confirmed, or rejected")
 		return
 	}
 	list, err := m.store.ListSubscriptions(c.Request.Context(), Filter{
@@ -62,7 +53,7 @@ func (m *Module) handleAdminListSubscriptions(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"subscriptions": list})
+	apiresp.OK(c, "Subscriptions retrieved", list)
 }
 
 func (m *Module) handleConfirmSubscription(c *gin.Context) {
@@ -71,7 +62,7 @@ func (m *Module) handleConfirmSubscription(c *gin.Context) {
 		DurationDays int    `json:"duration_days" binding:"omitempty,min=1,max=366"`
 		Notes        string `json:"notes"`
 	}
-	if !bindOptionalJSON(c, &req) {
+	if !apiresp.BindOptionalJSON(c, &req) {
 		return
 	}
 	if req.DurationDays == 0 {
@@ -79,7 +70,7 @@ func (m *Module) handleConfirmSubscription(c *gin.Context) {
 	}
 	key, err := generateLicenseKey()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate license key"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 	l, err := m.store.ConfirmSubscription(c.Request.Context(), c.Param("id"), claims.UserID, strings.TrimSpace(req.Notes), key, req.DurationDays)
@@ -87,7 +78,7 @@ func (m *Module) handleConfirmSubscription(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"license": l})
+	apiresp.OK(c, "Subscription confirmed", l)
 }
 
 func (m *Module) handleRejectSubscription(c *gin.Context) {
@@ -95,15 +86,14 @@ func (m *Module) handleRejectSubscription(c *gin.Context) {
 	var req struct {
 		Notes string `json:"notes" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "notes (rejection reason) is required"})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	if err := m.store.RejectSubscription(c.Request.Context(), c.Param("id"), claims.UserID, strings.TrimSpace(req.Notes)); err != nil {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "subscription rejected"})
+	apiresp.OK(c, "Subscription rejected", nil)
 }
 
 func (m *Module) handleAdminListLicenses(c *gin.Context) {
@@ -114,7 +104,7 @@ func (m *Module) handleAdminListLicenses(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"licenses": list})
+	apiresp.OK(c, "Licenses retrieved", list)
 }
 
 func (m *Module) handleRevokeLicense(c *gin.Context) {
@@ -122,7 +112,7 @@ func (m *Module) handleRevokeLicense(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "license revoked"})
+	apiresp.OK(c, "License revoked", nil)
 }
 
 // --- Owner Handlers ---
@@ -134,8 +124,7 @@ func (m *Module) handleCreateSubscription(c *gin.Context) {
 		PaymentProofURL string `json:"payment_proof_url" binding:"omitempty,url"`
 		Notes           string `json:"notes"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	sub, err := m.store.CreateSubscription(c.Request.Context(), CreateSubscriptionInput{
@@ -149,7 +138,7 @@ func (m *Module) handleCreateSubscription(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"subscription": sub})
+	apiresp.Created(c, "Subscription submitted", sub)
 }
 
 func (m *Module) handleListBranchSubscriptions(c *gin.Context) {
@@ -159,7 +148,7 @@ func (m *Module) handleListBranchSubscriptions(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"subscriptions": list})
+	apiresp.OK(c, "Subscriptions retrieved", list)
 }
 
 func (m *Module) handleListBranchLicenses(c *gin.Context) {
@@ -169,7 +158,7 @@ func (m *Module) handleListBranchLicenses(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"licenses": list, "active_until": activeUntil(list, time.Now())})
+	apiresp.OK(c, "Licenses retrieved", gin.H{"licenses": list, "active_until": activeUntil(list, time.Now())})
 }
 
 // activeUntil returns the end of the branch's paid period, or nil when it has none left.
@@ -188,8 +177,7 @@ func (m *Module) handleActivateLicense(c *gin.Context) {
 	var req struct {
 		LicenseKey string `json:"license_key" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "license_key is required"})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	l, err := m.store.ActivateLicense(c.Request.Context(), claims.UMKMID, c.Param("id"), strings.ToUpper(strings.TrimSpace(req.LicenseKey)))
@@ -197,7 +185,7 @@ func (m *Module) handleActivateLicense(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"license": l})
+	apiresp.OK(c, "License activated", l)
 }
 
 func (m *Module) handleListNotifications(c *gin.Context) {
@@ -207,7 +195,7 @@ func (m *Module) handleListNotifications(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"notifications": list})
+	apiresp.OK(c, "Notifications retrieved", list)
 }
 
 func (m *Module) handleMarkNotificationRead(c *gin.Context) {
@@ -216,5 +204,5 @@ func (m *Module) handleMarkNotificationRead(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "notification marked as read"})
+	apiresp.OK(c, "Notification marked as read", nil)
 }

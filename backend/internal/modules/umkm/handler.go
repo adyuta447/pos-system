@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/authctx"
 )
 
@@ -22,11 +23,11 @@ func hashPIN(pin string) string {
 func writeStoreErr(c *gin.Context, err error) {
 	switch {
 	case errors.Is(err, ErrNotFound):
-		c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+		apiresp.Err(c, http.StatusNotFound, "Resource not found")
 	case errors.Is(err, ErrConflict):
-		c.JSON(http.StatusConflict, gin.H{"error": "resource already exists"})
+		apiresp.Err(c, http.StatusConflict, "Resource already exists")
 	default:
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 	}
 }
 
@@ -43,13 +44,12 @@ type createUMKMRequest struct {
 
 func (m *Module) handleCreateUMKM(c *gin.Context) {
 	var req createUMKMRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.OwnerPassword), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 	u, ownerID, err := m.store.CreateUMKMWithOwner(c.Request.Context(), CreateUMKMInput{
@@ -64,7 +64,7 @@ func (m *Module) handleCreateUMKM(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"umkm": u, "owner_id": ownerID})
+	apiresp.Created(c, "UMKM created", gin.H{"umkm": u, "owner_id": ownerID})
 }
 
 func (m *Module) handleListUMKMs(c *gin.Context) {
@@ -73,7 +73,7 @@ func (m *Module) handleListUMKMs(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"umkms": list})
+	apiresp.OK(c, "UMKMs retrieved", list)
 }
 
 func (m *Module) handleGetUMKMByID(c *gin.Context) {
@@ -82,7 +82,7 @@ func (m *Module) handleGetUMKMByID(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"umkm": u})
+	apiresp.OK(c, "UMKM retrieved", u)
 }
 
 func (m *Module) handleAdminListBranches(c *gin.Context) {
@@ -96,7 +96,7 @@ func (m *Module) handleAdminListBranches(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"branches": list})
+	apiresp.OK(c, "Branches retrieved", list)
 }
 
 func (m *Module) handleGetMyUMKM(c *gin.Context) {
@@ -106,22 +106,21 @@ func (m *Module) handleGetMyUMKM(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"umkm": u})
+	apiresp.OK(c, "UMKM retrieved", u)
 }
 
 func (m *Module) handleSetUMKMStatus(c *gin.Context) {
 	var req struct {
 		IsActive *bool `json:"is_active" binding:"required"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "is_active is required"})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	if err := m.store.SetUMKMStatus(c.Request.Context(), c.Param("id"), *req.IsActive); err != nil {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "umkm status updated"})
+	apiresp.OK(c, "UMKM status updated", nil)
 }
 
 // --- Owner & Branch Admin Handlers ---
@@ -133,8 +132,7 @@ func (m *Module) handleCreateBranch(c *gin.Context) {
 		Address string `json:"address"`
 		Phone   string `json:"phone"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	b, err := m.store.CreateBranch(c.Request.Context(), claims.UMKMID, strings.TrimSpace(req.Name), strings.TrimSpace(req.Address), strings.TrimSpace(req.Phone))
@@ -142,7 +140,7 @@ func (m *Module) handleCreateBranch(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"branch": b})
+	apiresp.Created(c, "Branch created", b)
 }
 
 func (m *Module) handleListBranches(c *gin.Context) {
@@ -152,7 +150,7 @@ func (m *Module) handleListBranches(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"branches": list})
+	apiresp.OK(c, "Branches retrieved", list)
 }
 
 func (m *Module) handleUpdateBranch(c *gin.Context) {
@@ -163,8 +161,7 @@ func (m *Module) handleUpdateBranch(c *gin.Context) {
 		Phone    string `json:"phone"`
 		IsActive *bool  `json:"is_active"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	b, err := m.store.UpdateBranch(c.Request.Context(), claims.UMKMID, c.Param("id"), strings.TrimSpace(req.Name), strings.TrimSpace(req.Address), strings.TrimSpace(req.Phone), req.IsActive)
@@ -172,7 +169,7 @@ func (m *Module) handleUpdateBranch(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"branch": b})
+	apiresp.OK(c, "Branch updated", b)
 }
 
 func canAccessBranch(claims authctx.Claims, branchID string) bool {
@@ -186,7 +183,7 @@ func (m *Module) handleGetBranchSettings(c *gin.Context) {
 	claims, _ := authctx.GetClaims(c)
 	branchID := c.Param("id")
 	if !canAccessBranch(claims, branchID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		apiresp.Err(c, http.StatusForbidden, "You do not have permission to perform this action")
 		return
 	}
 	st, err := m.store.GetBranchSettings(c.Request.Context(), claims.UMKMID, branchID)
@@ -194,19 +191,18 @@ func (m *Module) handleGetBranchSettings(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"settings": st})
+	apiresp.OK(c, "Branch settings retrieved", st)
 }
 
 func (m *Module) handleUpdateBranchSettings(c *gin.Context) {
 	claims, _ := authctx.GetClaims(c)
 	branchID := c.Param("id")
 	if !canAccessBranch(claims, branchID) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "forbidden"})
+		apiresp.Err(c, http.StatusForbidden, "You do not have permission to perform this action")
 		return
 	}
 	var st BranchSettings
-	if err := c.ShouldBindJSON(&st); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &st) {
 		return
 	}
 	st.BranchID = branchID
@@ -221,7 +217,7 @@ func (m *Module) handleUpdateBranchSettings(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"settings": updated})
+	apiresp.OK(c, "Branch settings updated", updated)
 }
 
 func (m *Module) handleCreateBranchWebUser(c *gin.Context) {
@@ -231,13 +227,12 @@ func (m *Module) handleCreateBranchWebUser(c *gin.Context) {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required,min=6"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 		return
 	}
 	id, err := m.store.CreateBranchWebUser(c.Request.Context(), CreateBranchWebUserInput{
@@ -251,7 +246,7 @@ func (m *Module) handleCreateBranchWebUser(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"id": id, "role": "branch_admin"})
+	apiresp.Created(c, "Branch web user created", gin.H{"id": id, "role": "branch_admin"})
 }
 
 func (m *Module) handleCreateStaff(c *gin.Context) {
@@ -261,8 +256,7 @@ func (m *Module) handleCreateStaff(c *gin.Context) {
 		Role string `json:"role" binding:"required,oneof=branch_admin cashier"`
 		PIN  string `json:"pin" binding:"required,min=4,max=8"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	st, err := m.store.CreateStaff(c.Request.Context(), CreateStaffInput{
@@ -276,7 +270,7 @@ func (m *Module) handleCreateStaff(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"staff": st})
+	apiresp.Created(c, "Staff created", st)
 }
 
 func (m *Module) handleListStaff(c *gin.Context) {
@@ -286,7 +280,7 @@ func (m *Module) handleListStaff(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"staff": list})
+	apiresp.OK(c, "Staff retrieved", list)
 }
 
 func (m *Module) handleUpdateStaff(c *gin.Context) {
@@ -296,8 +290,7 @@ func (m *Module) handleUpdateStaff(c *gin.Context) {
 		Role     string `json:"role" binding:"omitempty,oneof=branch_admin cashier"`
 		IsActive *bool  `json:"is_active"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	st, err := m.store.UpdateStaff(c.Request.Context(), claims.UMKMID, c.Param("id"), c.Param("staffId"), strings.TrimSpace(req.Name), req.Role, req.IsActive)
@@ -305,7 +298,7 @@ func (m *Module) handleUpdateStaff(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"staff": st})
+	apiresp.OK(c, "Staff updated", st)
 }
 
 func (m *Module) handleResetStaffPIN(c *gin.Context) {
@@ -313,13 +306,12 @@ func (m *Module) handleResetStaffPIN(c *gin.Context) {
 	var req struct {
 		PIN string `json:"pin" binding:"required,min=4,max=8"`
 	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	if !apiresp.BindJSON(c, &req) {
 		return
 	}
 	if err := m.store.UpdateStaffPIN(c.Request.Context(), claims.UMKMID, c.Param("id"), c.Param("staffId"), hashPIN(req.PIN)); err != nil {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "pin updated"})
+	apiresp.OK(c, "PIN updated", nil)
 }

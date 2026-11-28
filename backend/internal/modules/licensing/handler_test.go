@@ -191,8 +191,8 @@ func TestSubscriptionToActivationFlow(t *testing.T) {
 	if rec := do(t, r, owner, http.MethodPost, "/api/v1/branches/branch-2/subscriptions", `{"payment_method":"transfer"}`); rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for foreign branch, got %d", rec.Code)
 	}
-	if rec := do(t, r, owner, http.MethodPost, "/api/v1/branches/branch-1/subscriptions", `{}`); rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 without payment_method, got %d", rec.Code)
+	if rec := do(t, r, owner, http.MethodPost, "/api/v1/branches/branch-1/subscriptions", `{}`); rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 without payment_method, got %d", rec.Code)
 	}
 
 	// Owner cannot confirm -> 403; superadmin confirms with empty body -> 200 + key; confirm again -> 409
@@ -203,10 +203,12 @@ func TestSubscriptionToActivationFlow(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rec.Code, rec.Body.String())
 	}
-	var confirmed struct{ License License }
+	var confirmed struct {
+		Data License `json:"data"`
+	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &confirmed)
-	if confirmed.License.DurationDays != defaultDurationDays || confirmed.License.Status != "unused" {
-		t.Fatalf("unexpected license: %+v", confirmed.License)
+	if confirmed.Data.DurationDays != defaultDurationDays || confirmed.Data.Status != "unused" {
+		t.Fatalf("unexpected license: %+v", confirmed.Data)
 	}
 	if rec := do(t, r, admin, http.MethodPatch, "/api/v1/admin/subscriptions/sub-1/confirm", ""); rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409 on double confirm, got %d", rec.Code)
@@ -219,7 +221,7 @@ func TestSubscriptionToActivationFlow(t *testing.T) {
 	if rec := do(t, r, owner, http.MethodPost, "/api/v1/branches/branch-1/licenses/activate", `{"license_key":"AAAA-BBBB-CCCC-DDDD"}`); rec.Code != http.StatusNotFound {
 		t.Fatalf("expected 404 for unknown key, got %d", rec.Code)
 	}
-	body := fmt.Sprintf(`{"license_key":" %s "}`, bytes.ToLower([]byte(confirmed.License.LicenseKey)))
+	body := fmt.Sprintf(`{"license_key":" %s "}`, bytes.ToLower([]byte(confirmed.Data.LicenseKey)))
 	if rec := do(t, r, owner, http.MethodPost, "/api/v1/branches/branch-1/licenses/activate", body); rec.Code != http.StatusOK {
 		t.Fatalf("expected 200 on activation, got %d: %s", rec.Code, rec.Body.String())
 	}
@@ -230,10 +232,12 @@ func TestSubscriptionToActivationFlow(t *testing.T) {
 	// Branch licenses report the active period
 	rec = do(t, r, owner, http.MethodGet, "/api/v1/branches/branch-1/licenses", "")
 	var listed struct {
-		ActiveUntil *time.Time `json:"active_until"`
+		Data struct {
+			ActiveUntil *time.Time `json:"active_until"`
+		} `json:"data"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &listed)
-	if rec.Code != http.StatusOK || listed.ActiveUntil == nil {
+	if rec.Code != http.StatusOK || listed.Data.ActiveUntil == nil {
 		t.Fatalf("expected active_until after activation, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
@@ -244,8 +248,8 @@ func TestRejectAndRevoke(t *testing.T) {
 	store.subs["sub-9"] = Subscription{ID: "sub-9", UMKMID: "umkm-1", BranchID: "branch-1", Status: "pending"}
 	store.licenses["lic-9"] = License{ID: "lic-9", UMKMID: "umkm-1", BranchID: "branch-1", Status: "unused"}
 
-	if rec := do(t, r, admin, http.MethodPatch, "/api/v1/admin/subscriptions/sub-9/reject", `{}`); rec.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 without reason, got %d", rec.Code)
+	if rec := do(t, r, admin, http.MethodPatch, "/api/v1/admin/subscriptions/sub-9/reject", `{}`); rec.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422 without reason, got %d", rec.Code)
 	}
 	if rec := do(t, r, admin, http.MethodPatch, "/api/v1/admin/subscriptions/sub-9/reject", `{"notes":"bukti tidak valid"}`); rec.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rec.Code)

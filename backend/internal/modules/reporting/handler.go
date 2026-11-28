@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/authctx"
 )
 
@@ -14,10 +15,10 @@ const dateLayout = "2006-01-02"
 
 func writeStoreErr(c *gin.Context, err error) {
 	if errors.Is(err, ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+		apiresp.Err(c, http.StatusNotFound, "Resource not found")
 		return
 	}
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 }
 
 // handleSummary serves the owner dashboard: all branches, or one branch via ?branch_id= for drill-down.
@@ -26,16 +27,16 @@ func (m *Module) handleSummary(c *gin.Context) {
 	from, errFrom := time.Parse(dateLayout, c.Query("from"))
 	to, errTo := time.Parse(dateLayout, c.Query("to"))
 	if errFrom != nil || errTo != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "from and to are required in YYYY-MM-DD format"})
+		apiresp.Err(c, http.StatusBadRequest, "from and to are required in YYYY-MM-DD format")
 		return
 	}
 	if to.Before(from) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "to must not be before from"})
+		apiresp.Err(c, http.StatusBadRequest, "to must not be before from")
 		return
 	}
 	period := c.DefaultQuery("period", "daily")
 	if period != "daily" && period != "monthly" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "period must be daily or monthly"})
+		apiresp.Err(c, http.StatusBadRequest, "period must be daily or monthly")
 		return
 	}
 	sum, err := m.store.Summary(c.Request.Context(), SummaryFilter{
@@ -49,5 +50,5 @@ func (m *Module) handleSummary(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"summary": sum})
+	apiresp.OK(c, "Report summary retrieved", sum)
 }

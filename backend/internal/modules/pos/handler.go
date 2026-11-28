@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/authctx"
 )
 
@@ -19,10 +20,10 @@ const (
 
 func writeStoreErr(c *gin.Context, err error) {
 	if errors.Is(err, ErrNotFound) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "resource not found"})
+		apiresp.Err(c, http.StatusNotFound, "Resource not found")
 		return
 	}
-	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+	apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 }
 
 // handleListTransactions serves the owner's cross-branch history (synced transactions only).
@@ -31,7 +32,7 @@ func (m *Module) handleListTransactions(c *gin.Context) {
 	for _, key := range []string{"from", "to"} {
 		if v := c.Query(key); v != "" {
 			if _, err := time.Parse(dateLayout, v); err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": key + " must be in YYYY-MM-DD format"})
+				apiresp.Err(c, http.StatusBadRequest, key+" must be in YYYY-MM-DD format")
 				return
 			}
 		}
@@ -39,7 +40,7 @@ func (m *Module) handleListTransactions(c *gin.Context) {
 	page, errPage := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, errLimit := strconv.Atoi(c.DefaultQuery("limit", strconv.Itoa(defaultLimit)))
 	if errPage != nil || errLimit != nil || page < 1 || limit < 1 || limit > maxLimit {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "page must be >= 1 and limit between 1 and 200"})
+		apiresp.Err(c, http.StatusBadRequest, "page must be >= 1 and limit between 1 and 200")
 		return
 	}
 
@@ -58,7 +59,7 @@ func (m *Module) handleListTransactions(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"transactions": list, "page": page, "limit": limit, "total": total})
+	apiresp.Paginated(c, "Transactions retrieved", list, page, limit, total)
 }
 
 func (m *Module) handleGetTransaction(c *gin.Context) {
@@ -68,5 +69,5 @@ func (m *Module) handleGetTransaction(c *gin.Context) {
 		writeStoreErr(c, err)
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"transaction": t})
+	apiresp.OK(c, "Transaction retrieved", t)
 }

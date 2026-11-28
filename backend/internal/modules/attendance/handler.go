@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"pos-system/backend/internal/platform/apiresp"
 	"pos-system/backend/internal/platform/authctx"
 )
 
@@ -17,11 +18,11 @@ func (m *Module) handleListAttendances(c *gin.Context) {
 	from, errFrom := time.Parse(dateLayout, c.Query("from"))
 	to, errTo := time.Parse(dateLayout, c.Query("to"))
 	if errFrom != nil || errTo != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "from and to are required in YYYY-MM-DD format"})
+		apiresp.Err(c, http.StatusBadRequest, "from and to are required in YYYY-MM-DD format")
 		return
 	}
 	if to.Before(from) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "to must not be before from"})
+		apiresp.Err(c, http.StatusBadRequest, "to must not be before from")
 		return
 	}
 	list, err := m.store.ListAttendances(c.Request.Context(), ListFilter{
@@ -32,8 +33,8 @@ func (m *Module) handleListAttendances(c *gin.Context) {
 		To:       to.Format(dateLayout),
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
+		apiresp.Err(c, http.StatusInternalServerError, "Internal server error")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"attendances": list})
+	apiresp.OK(c, "Attendances retrieved", list)
 }
