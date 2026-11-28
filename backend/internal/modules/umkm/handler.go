@@ -76,6 +76,25 @@ func (m *Module) handleListUMKMs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"umkms": list})
 }
 
+func (m *Module) handleGetUMKMByID(c *gin.Context) {
+	u, err := m.store.GetUMKM(c.Request.Context(), c.Param("id"))
+	if err != nil {
+		writeStoreErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"umkm": u})
+}
+
+func (m *Module) handleGetMyUMKM(c *gin.Context) {
+	claims, _ := authctx.GetClaims(c)
+	u, err := m.store.GetUMKM(c.Request.Context(), claims.UMKMID)
+	if err != nil {
+		writeStoreErr(c, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"umkm": u})
+}
+
 func (m *Module) handleSetUMKMStatus(c *gin.Context) {
 	var req struct {
 		IsActive *bool `json:"is_active" binding:"required"`

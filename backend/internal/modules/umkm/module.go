@@ -25,7 +25,11 @@ func (m *Module) RegisterRoutes(rg *gin.RouterGroup) {
 	admin := rg.Group("/admin/umkms", authMW, authctx.RequireRole("superadmin"))
 	admin.POST("", m.handleCreateUMKM)
 	admin.GET("", m.handleListUMKMs)
+	admin.GET("/:id", m.handleGetUMKMByID)
 	admin.PATCH("/:id/status", m.handleSetUMKMStatus)
+
+	// Owner & Branch Admin UMKM profile
+	rg.GET("/umkm", authMW, authctx.RequireRole("owner", "branch_admin"), m.handleGetMyUMKM)
 
 	// Owner & Branch Admin routes
 	branches := rg.Group("/branches", authMW)

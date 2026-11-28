@@ -59,6 +59,14 @@ func (m *memStore) ListUMKMs(_ context.Context) ([]UMKM, error) {
 	return out, nil
 }
 
+func (m *memStore) GetUMKM(_ context.Context, id string) (UMKM, error) {
+	u, ok := m.umkms[id]
+	if !ok {
+		return UMKM{}, ErrNotFound
+	}
+	return u, nil
+}
+
 func (m *memStore) SetUMKMStatus(_ context.Context, id string, active bool) error {
 	u, ok := m.umkms[id]
 	if !ok {
@@ -231,6 +239,25 @@ func TestSuperadminCreateUMKM(t *testing.T) {
 	r.ServeHTTP(rec, req)
 	if rec.Code != http.StatusConflict {
 		t.Fatalf("expected 409, got %d", rec.Code)
+	}
+
+	// Superadmin GET /admin/umkms/umkm-1 -> 200
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/admin/umkms/umkm-1", nil)
+	req.Header.Set("Authorization", "Bearer "+adminTok)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on superadmin get umkm, got %d", rec.Code)
+	}
+
+	// Owner GET /umkm -> 200
+	ownerOfUMKM1 := tok(t, secret, authctx.Claims{UserID: "o-1", UMKMID: "umkm-1", Role: "owner"})
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/umkm", nil)
+	req.Header.Set("Authorization", "Bearer "+ownerOfUMKM1)
+	r.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on owner get my umkm, got %d", rec.Code)
 	}
 }
 

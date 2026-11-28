@@ -88,6 +88,7 @@ type CreateStaffInput struct {
 type Store interface {
 	CreateUMKMWithOwner(ctx context.Context, in CreateUMKMInput) (UMKM, string, error)
 	ListUMKMs(ctx context.Context) ([]UMKM, error)
+	GetUMKM(ctx context.Context, id string) (UMKM, error)
 	SetUMKMStatus(ctx context.Context, id string, active bool) error
 
 	CreateBranch(ctx context.Context, umkmID, name, address, phone string) (Branch, error)
@@ -187,6 +188,21 @@ func (s *pgStore) ListUMKMs(ctx context.Context) ([]UMKM, error) {
 		out = append(out, u)
 	}
 	return out, rows.Err()
+}
+
+func (s *pgStore) GetUMKM(ctx context.Context, id string) (UMKM, error) {
+	var u UMKM
+	err := s.db.QueryRowContext(ctx, `
+		SELECT m.id, m.name, COALESCE(m.phone, ''), COALESCE(m.address, ''), m.is_active, COUNT(b.id)
+		FROM umkms m
+		LEFT JOIN branches b ON b.umkm_id = m.id AND b.deleted_at IS NULL
+		WHERE m.id = $1 AND m.deleted_at IS NULL
+		GROUP BY m.id`, id,
+	).Scan(&u.ID, &u.Name, &u.Phone, &u.Address, &u.IsActive, &u.BranchCount)
+	if errors.Is(err, sql.ErrNoRows) {
+		return UMKM{}, ErrNotFound
+	}
+	return u, err
 }
 
 func (s *pgStore) SetUMKMStatus(ctx context.Context, id string, active bool) error {
