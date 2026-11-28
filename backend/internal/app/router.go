@@ -36,7 +36,7 @@ func NewRouter(cfg config.Config, pool *sql.DB) http.Handler {
 		umkm.NewModule(umkm.NewPGStore(pool), cfg.JWTSecret),
 		licensing.NewModule(licensing.NewPGStore(pool), cfg.JWTSecret),
 		catalog.NewModule(),
-		pos.NewModule(),
+		pos.NewModule(pos.NewPGStore(pool), cfg.JWTSecret),
 		attendance.NewModule(),
 		reporting.NewModule(reporting.NewPGStore(pool), cfg.JWTSecret),
 	}
